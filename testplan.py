@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
 
 import time
 
 from globalpkg.log import logger
-from globalpkg.globalpy import mytestlink
-from globalpkg.globalpy import testcase_report_tb
-from globalpkg.globalpy import executed_history_id
-from globalpkg.globalpy import testdb
+from globalpkg.global_var import mytestlink
+from globalpkg.global_var import testcase_report_tb
+from globalpkg.global_var import executed_history_id
+from globalpkg.global_var import testdb
 from testcase import TestCase
 
 class TestPlan:
@@ -42,13 +42,25 @@ class TestPlan:
             testcase_id = int(testcase_id_str)
             testcase_info = mytestlink.getTestCase(testcase_id)  # 获取测试用例基本信息
 
+            logger.info('获取测试用例信息 %s' % testcase_info)
+
             # 构造测试用例对象
-            testcase_name = testcase_info[0]['name']
             testcase_steps = testcase_info[0]['steps']
+            testcase_name = testcase_info[0]['name']
+            preconditions = testcase_info[0]['preconditions']
+            if preconditions.find('初始化用例') != -1:
+                logger.info('用例[id=%s, name=%s]为全局初始化用例，已跳过执行' % (testcase_id, testcase_name))
+                continue
             testcase_isactive = int(testcase_info[0]['active'])
-            testsuite_id = int(testcase_info[0]['testsuite_id'])
-            testsuite_info = mytestlink.getTestSuiteByID(testsuite_id)
-            testsuite_name = testsuite_info['name']
+
+            # 获取测试套件名称
+            full_path = mytestlink.getFullPath([testcase_id])
+            full_path = full_path[str(testcase_id)]
+            testsuite_name = ''
+            for suit in full_path[1:]:
+                testsuite_name = testsuite_name + '-' + suit
+            testsuite_name = testsuite_name.lstrip('-')
+
             testcase_obj = TestCase(testcase_id, testcase_name, testcase_steps, testcase_isactive, self.testproject)
 
             sql_insert = 'INSERT INTO '+testcase_report_tb +'(executed_history_id, testcase_id, testcase_name, testsuit, testplan, project, runresult, runtime)' \
@@ -64,9 +76,9 @@ class TestPlan:
             logger.info('正在更新用例执行结果')
             sql_update = 'UPDATE '+testcase_report_tb +' SET runresult=\"%s\", runtime=\"%s\"' \
                         ' WHERE executed_history_id = %s AND testcase_id = %s' \
-                        ' AND project=\'%s\' AND testplan=\'%s\'' % \
-                        (testcase_run_result, run_time, executed_history_id, testcase_id, self.testproject, self.testplan_name)
-            testdb.execute_update(sql_update)
+                        ' AND project=\'%s\' AND testplan=\'%s\''
+            data =  (testcase_run_result[0], run_time, executed_history_id, testcase_id, self.testproject, self.testplan_name)
+            testdb.execute_update(sql_update, data)
 
             bulid_info = mytestlink.getLatestBuildForTestPlan(self.testplan_id) # 固定取最新的版本
             bulid_version = bulid_info['name']
@@ -75,12 +87,12 @@ class TestPlan:
                         % (self.testplan_id, bulid_version, testcase_id))
             notes = '用例[id：%s]在测试计划[testplan_id：%s，testplan_name：%s,bulidversion：%s]中的执行结果' \
                     % (testcase_id, self.testplan_id,self.testplan_name, bulid_version)
-            if 'Fail' == testcase_run_result or 'Error' == testcase_run_result:
+            if 'Fail' == testcase_run_result[0] or 'Error' == testcase_run_result[0]:
                 self.__execute_case_in_testlink(testcase_id, bulid_version, 'f', notes) # f - 失败
-            elif 'Pass' == testcase_run_result:
+            elif 'Pass' == testcase_run_result[0]:
                 self.__execute_case_in_testlink(testcase_id, bulid_version, 'p', notes) # f - 成功
             else:
-                pass # 如果未执行，啥都不做,str(self.testplan_id)
+                pass # 如果未执行，啥都不做
 
         logger.info('测试计划[project=%s ,testplan=%s]已执行完' % (self.testproject, self.testplan_name))
 

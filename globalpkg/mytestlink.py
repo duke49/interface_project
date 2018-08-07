@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
 
 from testlink import TestLinkHelper, TestlinkAPIClient
 #from testlink.testlinkerrors import TLResponseError

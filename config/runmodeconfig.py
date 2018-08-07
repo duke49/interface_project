@@ -20,6 +20,8 @@ class RunModeConfig:
             self.testplans = config['PLANS']['plans']
             self.project_of_plans = config['PLANS']['project']
             self.testsuites = config['TESTSUITES']['testsuites']
+            self.case_id_list = eval(config['TESTCASES']['case_id_list'])
+            self.global_case_id_list = eval(config['GLOBALCASES']['global_case_id_list'])
         except Exception as e:
             logger.error('读取运行模式配置失败：%s' % e)
             exit()
@@ -42,8 +44,11 @@ class RunModeConfig:
     def get_testsuits(self):
         return self.testsuites
 
-    def get_testcases_id_list(self):
-        return self.testcases_id_list
+    def get_testcase_id_list(self):
+        return self.case_id_list
+
+    def get_global_case_id_list(self):
+        return self.global_case_id_list
 
 
 

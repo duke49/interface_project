@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
 
-import time
 import os
 
 from pyh import *
 from globalpkg.log import logger
-from globalpkg.globalpy import testdb
-from globalpkg.globalpy import case_step_report_tb
-from globalpkg.globalpy import testcase_report_tb
-from globalpkg.globalpy import executed_history_id
-from globalpkg.globalpy import other_tools
+from globalpkg.global_var import testdb
+from globalpkg.global_var import case_step_report_tb
+from globalpkg.global_var import testcase_report_tb
+from globalpkg.global_var import executed_history_id
+from globalpkg.global_var import other_tools
 
 class HtmlReport:
     def __init__(self, title, head):
@@ -39,35 +38,50 @@ class HtmlReport:
         query = 'SELECT count(testcase_id) FROM ' + testcase_report_tb + ' WHERE executed_history_id = %s'
         data = (executed_history_id,)
         result = testdb.select_one_record(query, data)
-        self.case_total = result[0]
+        self.case_total = result[0][0]
 
         logger.info('正在查询执行通过的用例数')
         query = 'SELECT count(testcase_id) FROM ' + testcase_report_tb + ' WHERE runresult = %s AND executed_history_id = %s'
         data = ('Pass', executed_history_id)
         result = testdb.select_one_record(query, data)
-        self.success_num = result[0]
+        self.success_num = result[0][0]
 
         logger.info('正在查询执行失败的用例数')
         query = 'SELECT count(testcase_id) FROM ' + testcase_report_tb + ' WHERE runresult = %s AND executed_history_id = %s'
         data = ('Fail', executed_history_id)
         result = testdb.select_one_record(query, data)
-        self.fail_num = result[0]
+        self.fail_num = result[0][0]
 
         logger.info('正在查询执行出错的用例数')
         query = 'SELECT count(testcase_id) FROM ' + testcase_report_tb + ' WHERE runresult = %s AND executed_history_id = %s'
         data = ('Error', executed_history_id)
         result = testdb.select_one_record(query, data)
-        self.error_num = result[0]
+        self.error_num = result[0][0]
 
         logger.info('正在查询未执行的用例数')
         query = 'SELECT count(testcase_id) FROM ' + testcase_report_tb + ' WHERE runresult = %s AND executed_history_id = %s'
         data = ('Block', executed_history_id)
         result = testdb.select_one_record(query, data)
-        self.block_num = result[0]
+        self.block_num = result[0][0]
+
+        if self.fail_num != 0:
+            self.fail_num = '<font color="red">'+ str(self.fail_num) + '</font>'
+        else:
+            self.fail_num = str(self.fail_num)
+
+        if self.error_num != 0:
+            self.error_num = '<font  color="red">'+ str(self.error_num) + '</font>'
+        else:
+            self.error_num = str(self.error_num)
+
+        if self.block_num != 0:
+            self.block_num = '<font  color="red">'+ str(self.block_num) + '</font>'
+        else:
+            self.block_num = str(self.block_num)
 
         page << p('用例总数：' + str(self.case_total) + '&nbsp'*10 + '成功用例数(Pass)：' + str(self.success_num) +\
-                      '&nbsp'*10 + '失败用例数(Fail)：' + str(self.fail_num) + '&nbsp'*10 +  '出错用例数(Error)：' + str(self.error_num) +\
-                      '&nbsp'*10 +  '未执行用例数(Block)：' + str(self.block_num))
+                      '&nbsp'*10 + '失败用例数(Fail)：' + self.fail_num + '&nbsp'*10 +  '出错用例数(Error)：' + self.error_num +\
+                      '&nbsp'*10 +  '未执行用例数(Block)：' + self.block_num)
 
         page << p('<br/>####################################################用例执行摘要####################################################<br/>')
         logger.info('正在查询已运的测试计划')
@@ -99,15 +113,19 @@ class HtmlReport:
             logger.info('正在查询测试计划[project：%s, testplan：%s]的测试用例执行结果' % (row[0],row[1]))
             query = ('SELECT id, executed_history_id, testcase_id, testcase_name,'
                                  'testsuit, testplan, project, runresult, runtime FROM ' + testcase_report_tb +\
-                                 ' WHERE project=%s AND testplan=%s AND executed_history_id = %s ORDER BY id ASC')
+                                 ' WHERE project=%s AND testplan=%s AND executed_history_id = %s GROUP BY testcase_id ORDER BY id ASC')
             data = (project,testplan, executed_history_id)
             result = testdb.select_many_record(query, data)
 
             logger.info('正在记录测试测试计划[project：%s, testplan：%s]的测试用例运行结果到测试报告' % (row[0],row[1]))
             for row in result:
+                if row[7] != 'Pass':
+                    td7 = td(row[7], align='center', bgcolor="red")
+                else:
+                    td7 = td(row[7], align='center')
                 tab1 << tr(td(str(row[0]), align='center') + td(row[1], align='center') + td(row[2], align='center') +
                                 td('<a name=\"first'+str(row[2]) + project + testplan + '\"' + 'href=\"#second' + str(row[2]) + project + testplan + '\">' + row[3] + '</a>')
-                                + td(row[4]) + td(row[5], align='center') + td(row[6], align='center') + td(row[7], align='center')
+                                + td(row[4]) + td(row[5], align='center') + td(row[6], align='center') +td7
                                 + td(row[8], align='center'))
 
             page << p('<br/>')
@@ -157,19 +175,22 @@ class HtmlReport:
                        + td('运行时间', bgcolor='#ABABAB', align='center'))
 
                 logger.info('正在查询测试用例[id=%s]步骤运行结果' % case_id)
-                query = ('SELECT step_id, step_num, protocol_method, protocol, host, port, '
-                     'step_action, expected_results, cstb.runresult, reason, cstb.runtime'\
-                     ' FROM ' + case_step_report_tb + ' AS cstb'\
-                     ' JOIN ' + testcase_report_tb + ' AS tstb ON cstb.testcase_id =  tstb.testcase_id'\
-                     ' AND cstb.project=tstb.project AND cstb.testplan=tstb.testplan AND cstb.executed_history_id = tstb.executed_history_id'
-                     ' WHERE tstb.project= %s AND tstb.testplan=%s'\
-                     ' AND cstb.testcase_id=%s AND cstb.executed_history_id = %s')
+                query= 'SELECT step_id, step_num, protocol_method, protocol, HOST, PORT, step_action, expected_results, runresult, reason, runtime ' \
+                      'FROM case_step_report_tb ' \
+                      'WHERE project= %s AND testplan= %s AND testcase_id = %s ' \
+                      'AND executed_history_id = %s ' \
+                      'GROUP BY step_num ' \
+                      'ORDER BY step_num ASC'
                 data = (project, testplan, case_id, executed_history_id)
                 result = testdb.select_many_record(query, data)
                 for row in result:
+                    if row[8] != 'Pass':
+                        td8 = td(row[8], align='center', bgcolor="red")
+                    else:
+                        td8 = td(row[8], align='center')
                     tab2 << tr(td(str(row[0]), align='center') + td(row[1], align='center') + td(row[2], align='center') +
                             td(row[3], align='center') +  td(row[4], align='center') + td(str(row[5]), align='center') +
-                            td(str(row[6]), align='left') + td(row[7], align='left') + td(row[8], align='center')
+                            td(str(row[6]), align='left') + td(row[7], align='left') + td8
                             + td(row[9], align='left') + td(row[10], align='center'))
                 page << p('<br/>')
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
 
 import configparser
 import sys
 import mysql.connector
 
-from globalpkg.globalpy import logger
+from globalpkg.global_var import logger
 
 class MyDB:
     """动作类，获取数据库连接，配置数据库IP，端口等信息，获取数据库连接"""
@@ -16,19 +16,25 @@ class MyDB:
         config = configparser.ConfigParser()
 
         # 从配置文件中读取数据库服务器IP、域名，端口
-        config.read(config_file)
-        host = config[db]['host']
-        port = config[db]['port']
-        user = config[db]['user']
-        passwd = config[db]['passwd']
-        db_name = config[db]['db']
-        charset = config[db]['charset']
+        config.read(config_file, encoding='utf-8')
+        self.host = config[db]['host']
+        self.port = config[db]['port']
+        self.user = config[db]['user']
+        self.passwd = config[db]['passwd']
+        self.db_name = config[db]['db']
+        self.charset = config[db]['charset']
 
         try:
-            self.dbconn = mysql.connector.connect(host=host, port=port, user=user, password=passwd, database=db_name, charset=charset)
+            self.dbconn = mysql.connector.connect(host=self.host, port=self.port, user=self.user, password=self.passwd, database=self.db_name, charset=self.charset)
         except Exception as e:
             logger.error('初始化数据连接失败：%s' % e)
             sys.exit()
+
+    def get_host(self):
+        return self.host
+
+    def get_port(self):
+        return self.port
 
     def get_conn(self):
         return self.dbconn
@@ -39,6 +45,7 @@ class MyDB:
             db_cursor = self.dbconn.cursor()
             db_cursor.execute(query)
             db_cursor.execute('commit')
+            db_cursor.close()
             return True
         except Exception as e:
             logger.error('创建数据库表操作失败：%s' % e)
@@ -52,6 +59,7 @@ class MyDB:
             db_cursor = self.dbconn.cursor()
             db_cursor.execute(query, data)
             db_cursor.execute('commit')
+            db_cursor.close()
             return True
         except Exception as e:
             logger.error('执行数据库插入操作失败：%s' % e)
@@ -59,18 +67,20 @@ class MyDB:
             db_cursor.close()
             exit()
 
-    def execute_update(self, query):
+    def execute_update(self, query, data):
+        query = query % data
         logger.info('query：%s' % query)
         try:
             db_cursor = self.dbconn.cursor()
             db_cursor.execute(query)
             db_cursor.execute('commit')
-            return True
+            db_cursor.close()
+            return ('',True)
         except Exception as e:
             logger.error('执行数据库更新操作失败：%s' % e)
             db_cursor.execute('rollback')
             db_cursor.close()
-            exit()
+            return (e, False)
 
     def select_one_record(self, query, data=""):
         '''返回结果只包含一条记录'''
@@ -82,11 +92,12 @@ class MyDB:
             else:
                 db_cursor.execute(query)
             query_result = db_cursor.fetchone()
-            return query_result
+            db_cursor.close()
+            return (query_result,True)
         except Exception as e:
             logger.error('执行数据库查询操作失败：%s' % e)
             db_cursor.close()
-            exit()
+            return(e,False)
 
     def select_many_record(self, query, data=""):
         '''返回结果只包含多条记录'''
@@ -98,6 +109,7 @@ class MyDB:
             else:
                 db_cursor.execute(query)
             query_result = db_cursor.fetchall()
+            db_cursor.close()
             return query_result
         except Exception as e:
             logger.error('执行数据库查询操作失败：%s' % e)

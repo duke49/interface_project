@@ -17,13 +17,18 @@ class MyMail:
         config = configparser.ConfigParser()
         config.read(mail_config_file)
 
-        self.smtp = smtplib.SMTP()
         self.login_user = config.get('SMTP', 'login_user')
         self.login_pwd = config.get('SMTP', 'login_pwd')
         self.from_addr = config.get('SMTP', 'from_addr')
         self.to_addrs = config.get('SMTP', 'to_addrs')
         self.host = config.get('SMTP', 'host')
         self.port = config.get('SMTP', 'port')
+        self.encrypt = config.get('SMTP', 'encrypt')
+        if int(self.encrypt) == 1:
+            self.smtp = smtplib.SMTP_SSL()
+        else:
+            self.smtp = smtplib.SMTP()
+
 
     # 连接到服务器
     def connect(self):

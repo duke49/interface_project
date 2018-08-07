@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../interface_project/.idea/interface_test_automation.iml" filepath="$PROJECT_DIR$/../interface_project/.idea/interface_test_automation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/interface_project_for_dev.iml" filepath="$PROJECT_DIR$/.idea/interface_project_for_dev.iml" />
     </modules>
   </component>
 </project>

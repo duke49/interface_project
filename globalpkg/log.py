@@ -2,11 +2,13 @@
 # -*- coding:utf-8 -*-
 
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
 import logging
 from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 import threading
 import configparser
+
 
 class LogSignleton(object):
     def __init__(self, log_config):
@@ -48,7 +50,8 @@ class LogSignleton(object):
             self.logger.setLevel(self.log_level_in_console)
 
         if self.logfile_log_on == 1: # 如果开启文件日志
-            rt_file_handler = RotatingFileHandler(self.log_filename, maxBytes=self.max_bytes_each, backupCount=self.backup_count)
+            #rt_file_handler = RotatingFileHandler(self.log_filename, maxBytes=self.max_bytes_each, backupCount=self.backup_count)
+            rt_file_handler = TimedRotatingFileHandler(self.log_filename, when='D', interval=1,backupCount=self.backup_count)
             rt_file_handler.setFormatter(formatter)
             self.logger.addHandler(rt_file_handler)
             self.logger.setLevel(self.log_level_in_logfile)

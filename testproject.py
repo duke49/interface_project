@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = 'laifuyu'
+
 from globalpkg.log import logger
-from globalpkg.globalpy import mytestlink
-from globalpkg.globalpy import other_tools
+from globalpkg.global_var import mytestlink
+from globalpkg.global_var import other_tools
 from testplan import TestPlan
 
 class TestProject:
