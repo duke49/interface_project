@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-__author__ = 'shouke'
+__author__ = '授课'
 
 import  configparser
 from globalpkg.log import logger

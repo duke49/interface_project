@@ -109,7 +109,7 @@ class TestCase:
                     result_of_step = str(result_of_step)
 
                 result_of_step = result_of_step.replace('"', "'")
-				# except Exception as e:
+			#     except Exception as e:
             #     logger.error('获取step action、expected_result出错 %s' % e)
             #     action_of_step = ''
             #     result_of_step = ''
