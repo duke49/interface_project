@@ -4,7 +4,7 @@
 __author__ = '授课'
 
 import  configparser
-from globalpkg.log import logger
+from interface_project.globalpkg.log import logger
 
 
 class RunModeConfig:
